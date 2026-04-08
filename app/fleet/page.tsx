@@ -57,6 +57,22 @@ function expiryBadge(dateString: string | null) {
   return <span className="text-white/60">{formatDate(dateString)}</span>;
 }
 
+function returnBadge(car: Car) {
+  if (car.status !== "rented" || !car.rented_from || !car.rental_days) {
+    return <span className="text-white/25">—</span>;
+  }
+  const date = parseDateSafe(car.rented_from);
+  if (!date) return <span className="text-white/25">—</span>;
+  date.setDate(date.getDate() + Number(car.rental_days));
+  const returnDateStr = date.toISOString().split("T")[0];
+  const days = getDaysUntil(returnDateStr);
+  if (days === null) return <span className="text-white/25">—</span>;
+  if (days < 0) return <span className="text-rose-300 font-medium">Overdue {Math.abs(days)}d</span>;
+  if (days === 0) return <span className="text-rose-300 font-medium">Due today</span>;
+  if (days <= 7) return <span className="text-amber-300 font-medium">{days}d left</span>;
+  return <span className="text-white/60">{formatDate(returnDateStr)}</span>;
+}
+
 export default function FleetPage() {
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +170,7 @@ export default function FleetPage() {
                       <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40">Status</th>
                       <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40">Customer</th>
                       <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40">Weekly</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40">Return</th>
                       <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40">Rego</th>
                       <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40">Insurance</th>
                       <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-[0.18em] text-white/40"></th>
@@ -174,6 +191,7 @@ export default function FleetPage() {
                         </td>
                         <td className="px-5 py-4 text-white/70">{car.customer_name || "—"}</td>
                         <td className="px-5 py-4 text-white/70">${car.weekly_price}</td>
+                        <td className="px-5 py-4">{returnBadge(car)}</td>
                         <td className="px-5 py-4">{expiryBadge(car.rego_expiry)}</td>
                         <td className="px-5 py-4">{expiryBadge(car.insurance_expiry)}</td>
                         <td className="px-5 py-4">

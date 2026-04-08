@@ -86,6 +86,25 @@ function getExpiryStatus(dateString: string | null) {
   return { text: `${days} day${days === 1 ? "" : "s"} left`, className: "text-emerald-300", sortValue: days };
 }
 
+function getReturnDateString(car: Car): string | null {
+  if (!car.rented_from || !car.rental_days) return null;
+  const date = parseDateSafe(car.rented_from);
+  if (!date) return null;
+  date.setDate(date.getDate() + Number(car.rental_days));
+  return date.toISOString().split("T")[0];
+}
+
+function getReturnStatus(car: Car) {
+  if (car.status !== "rented") return null;
+  const returnDate = getReturnDateString(car);
+  const days = getDaysUntil(returnDate);
+  if (days === null) return null;
+  if (days < 0) return { text: `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`, className: "text-rose-300", urgent: true, days };
+  if (days === 0) return { text: "Due back today", className: "text-rose-300", urgent: true, days };
+  if (days <= 7) return { text: `Due back in ${days} day${days === 1 ? "" : "s"}`, className: "text-amber-300", urgent: true, days };
+  return { text: `Due back in ${days} day${days === 1 ? "" : "s"}`, className: "text-emerald-300", urgent: false, days };
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -289,12 +308,17 @@ export default function Home() {
     });
   }, [cars, search, filterStatus]);
 
-  // Urgent cars: rego or insurance expiring within 30 days
+  // Urgent cars: rego/insurance expiring within 30 days, or rental return due within 7 days
   const urgentCars = useMemo(() => {
     return cars.filter((car) => {
       const regoDays = getDaysUntil(car.rego_expiry);
       const insuranceDays = getDaysUntil(car.insurance_expiry);
-      return (regoDays !== null && regoDays <= 30) || (insuranceDays !== null && insuranceDays <= 30);
+      const returnStatus = getReturnStatus(car);
+      return (
+        (regoDays !== null && regoDays <= 30) ||
+        (insuranceDays !== null && insuranceDays <= 30) ||
+        (returnStatus !== null && returnStatus.urgent)
+      );
     });
   }, [cars]);
 
@@ -331,37 +355,74 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-8 md:px-8">
 
           {/* ── Alert Banner ── */}
-          {urgentCars.length > 0 && (
-            <div className="mb-6 rounded-[20px] border border-rose-400/25 bg-rose-500/8 px-5 py-4">
-              <div className="flex items-start gap-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-300 mt-0.5 shrink-0">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-rose-300">
-                    {urgentCars.length} car{urgentCars.length > 1 ? "s" : ""} need{urgentCars.length === 1 ? "s" : ""} attention
-                  </p>
-                  <p className="mt-0.5 text-xs text-white/50">Rego or insurance expiring within 30 days</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {urgentCars.map((car) => {
-                      const regoDays = getDaysUntil(car.rego_expiry);
-                      const insDays = getDaysUntil(car.insurance_expiry);
-                      const isUrgentRego = regoDays !== null && regoDays <= 30;
-                      const isUrgentIns = insDays !== null && insDays <= 30;
-                      return (
-                        <span key={car.id} className="text-xs text-rose-200 bg-rose-500/12 border border-rose-400/20 rounded-full px-3 py-1">
-                          {car.brand} {car.model}
-                          {isUrgentRego && ` · Rego: ${regoDays !== null && regoDays < 0 ? "expired" : `${regoDays}d`}`}
-                          {isUrgentIns && ` · Insurance: ${insDays !== null && insDays < 0 ? "expired" : `${insDays}d`}`}
-                        </span>
-                      );
-                    })}
+          {urgentCars.length > 0 && (() => {
+            const returnDueCars = urgentCars.filter((car) => getReturnStatus(car)?.urgent);
+            const expiryDueCars = urgentCars.filter((car) => {
+              const regoDays = getDaysUntil(car.rego_expiry);
+              const insDays = getDaysUntil(car.insurance_expiry);
+              return (regoDays !== null && regoDays <= 30) || (insDays !== null && insDays <= 30);
+            });
+            return (
+              <div className="mb-6 flex flex-col gap-3">
+                {/* Return due warning */}
+                {returnDueCars.length > 0 && (
+                  <div className="rounded-[20px] border border-amber-400/25 bg-amber-500/8 px-5 py-4">
+                    <div className="flex items-start gap-3">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-300 mt-0.5 shrink-0">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-300">
+                          {returnDueCars.length} car{returnDueCars.length > 1 ? "s" : ""} due back soon
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/50">Rental return date within 7 days</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {returnDueCars.map((car) => {
+                            const rs = getReturnStatus(car);
+                            return (
+                              <span key={car.id} className="text-xs text-amber-200 bg-amber-500/12 border border-amber-400/20 rounded-full px-3 py-1">
+                                {car.brand} {car.model} · {car.customer_name || "no customer"} · {rs?.text}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+                {/* Expiry warning */}
+                {expiryDueCars.length > 0 && (
+                  <div className="rounded-[20px] border border-rose-400/25 bg-rose-500/8 px-5 py-4">
+                    <div className="flex items-start gap-3">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-300 mt-0.5 shrink-0">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-rose-300">
+                          {expiryDueCars.length} car{expiryDueCars.length > 1 ? "s" : ""} need attention
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/50">Rego or insurance expiring within 30 days</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {expiryDueCars.map((car) => {
+                            const regoDays = getDaysUntil(car.rego_expiry);
+                            const insDays = getDaysUntil(car.insurance_expiry);
+                            return (
+                              <span key={car.id} className="text-xs text-rose-200 bg-rose-500/12 border border-rose-400/20 rounded-full px-3 py-1">
+                                {car.brand} {car.model}
+                                {regoDays !== null && regoDays <= 30 && ` · Rego: ${regoDays < 0 ? "expired" : `${regoDays}d`}`}
+                                {insDays !== null && insDays <= 30 && ` · Insurance: ${insDays < 0 ? "expired" : `${insDays}d`}`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── Page header ── */}
           <div className="mb-8 flex flex-col gap-2">
@@ -491,21 +552,33 @@ export default function Home() {
                         <InfoBox label="Customer" value={car.customer_name || "—"} />
                       </div>
 
-                      {/* Expiry warning badges */}
-                      {(regoStatus.sortValue < 30 || insuranceStatus.sortValue < 30) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {regoStatus.sortValue < 30 && (
-                            <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${regoStatus.className}`}>
-                              Rego: {regoStatus.text}
-                            </span>
-                          )}
-                          {insuranceStatus.sortValue < 30 && (
-                            <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${insuranceStatus.className}`}>
-                              Insurance: {insuranceStatus.text}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {/* Return due + expiry warning badges */}
+                      {(() => {
+                        const returnStatus = getReturnStatus(car);
+                        const showReturn = returnStatus !== null;
+                        const showRego = regoStatus.sortValue < 30;
+                        const showIns = insuranceStatus.sortValue < 30;
+                        if (!showReturn && !showRego && !showIns) return null;
+                        return (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {showReturn && (
+                              <span className={`rounded-full border border-white/10 px-3 py-1 text-xs font-medium ${returnStatus.className}`}>
+                                ⏱ {returnStatus.text}
+                              </span>
+                            )}
+                            {showRego && (
+                              <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${regoStatus.className}`}>
+                                Rego: {regoStatus.text}
+                              </span>
+                            )}
+                            {showIns && (
+                              <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${insuranceStatus.className}`}>
+                                Insurance: {insuranceStatus.text}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Show/hide details toggle */}
                       <button
