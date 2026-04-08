@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Sidebar } from "@/app/components/Sidebar";
 
 type Car = {
   id: string;
@@ -216,17 +217,20 @@ export default function CarDetailsPage() {
 
   if (loading || !car) {
     return (
-      <main className="min-h-screen bg-[#020f2d] text-white px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-white/10 bg-white/5 p-8 text-white/60">
+      <div className="flex min-h-screen bg-[#061224] text-white">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center text-white/50">
           Loading vehicle details...
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#020f2d] text-white px-6 py-8 md:px-10">
-      <div className="mx-auto max-w-6xl">
+    <div className="flex min-h-screen bg-[#061224] text-white">
+      <Sidebar />
+      <main className="flex-1 min-w-0 px-6 py-8 md:px-10">
+      <div className="mx-auto max-w-5xl">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-white/50">
@@ -399,6 +403,7 @@ export default function CarDetailsPage() {
           )}
         </section>
       </div>
+      </main>
 
       {editingRental && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -559,7 +564,7 @@ export default function CarDetailsPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

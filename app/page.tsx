@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Sidebar } from "@/app/components/Sidebar";
 
 type Car = {
   id: string;
@@ -83,107 +84,6 @@ function getExpiryStatus(dateString: string | null) {
   if (days <= 14) return { text: `${days} day${days === 1 ? "" : "s"} left`, className: "text-rose-300", sortValue: days };
   if (days <= 30) return { text: `${days} day${days === 1 ? "" : "s"} left`, className: "text-amber-300", sortValue: days };
   return { text: `${days} day${days === 1 ? "" : "s"} left`, className: "text-emerald-300", sortValue: days };
-}
-
-// ── Sidebar ──────────────────────────────────────────────────────────────────
-
-function Sidebar() {
-  return (
-    <aside className="hidden md:flex flex-col w-56 shrink-0 min-h-screen bg-[#040d18] border-r border-white/8 px-4 py-7 sticky top-0 h-screen overflow-y-auto">
-      {/* Logo */}
-      <div className="mb-8 px-2 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 shrink-0">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300">
-            <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
-            <rect x="9" y="7" width="12" height="10" rx="2" />
-            <circle cx="7" cy="17" r="2" />
-            <circle cx="17" cy="17" r="2" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-[10px] font-medium text-white/35 uppercase tracking-widest">Admin</p>
-          <p className="text-sm font-semibold text-white leading-tight">RoadQuest</p>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex flex-col gap-1">
-        <NavItem
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-          }
-          label="Dashboard"
-          href="/"
-          active
-        />
-        <NavItem
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
-              <rect x="9" y="7" width="12" height="10" rx="2" />
-              <circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
-            </svg>
-          }
-          label="Fleet"
-          href="/"
-        />
-        <NavItem
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          }
-          label="History"
-          href="/"
-        />
-        <NavItem
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
-            </svg>
-          }
-          label="Settings"
-          href="/"
-        />
-      </nav>
-
-      {/* Bottom label */}
-      <div className="mt-auto px-2 pt-6 border-t border-white/8">
-        <p className="text-xs text-white/25">RoadQuest Cars v1.0</p>
-      </div>
-    </aside>
-  );
-}
-
-function NavItem({
-  icon,
-  label,
-  href,
-  active = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-  active?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition
-        ${active
-          ? "bg-blue-500/15 text-blue-200"
-          : "text-white/45 hover:bg-white/6 hover:text-white/80"
-        }`}
-    >
-      <span className={active ? "text-blue-300" : "text-white/40"}>{icon}</span>
-      {label}
-    </Link>
-  );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
