@@ -127,6 +127,10 @@ export default function Home() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [rentModalCar, setRentModalCar] = useState<Car | null>(null);
+  const [modalCustomerName, setModalCustomerName] = useState("");
+  const [modalRentedFrom, setModalRentedFrom] = useState("");
+  const [modalRentalDays, setModalRentalDays] = useState("");
 
   useEffect(() => {
     fetchCars();
@@ -287,6 +291,29 @@ export default function Home() {
     const { data, error } = await supabase.from("cars").update(updates).eq("id", car.id).select().single();
     if (error) { alert(error.message); return; }
     setCars((prev) => prev.map((c) => (c.id === (data as Car).id ? (data as Car) : c)));
+  }
+
+  function handleOpenRentModal(car: Car) {
+    setRentModalCar(car);
+    setModalCustomerName("");
+    setModalRentedFrom(todayDateString());
+    setModalRentalDays("");
+  }
+
+  async function handleConfirmRent() {
+    if (!rentModalCar) return;
+    if (!modalCustomerName.trim()) { alert("Please enter a customer name"); return; }
+    if (!modalRentedFrom) { alert("Please enter a start date"); return; }
+    if (!modalRentalDays || Number(modalRentalDays) < 1) { alert("Please enter rental days"); return; }
+    const { data, error } = await supabase.from("cars").update({
+      status: "rented",
+      customer_name: modalCustomerName.trim(),
+      rented_from: modalRentedFrom,
+      rental_days: Number(modalRentalDays),
+    }).eq("id", rentModalCar.id).select().single();
+    if (error) { alert(error.message); return; }
+    setCars((prev) => prev.map((c) => (c.id === (data as Car).id ? (data as Car) : c)));
+    setRentModalCar(null);
   }
 
   const filteredCars = useMemo(() => {
@@ -629,9 +656,15 @@ export default function Home() {
                         <button onClick={() => handleStartEdit(car)} className="rounded-2xl bg-amber-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-amber-300">
                           Edit
                         </button>
-                        <button onClick={() => handleToggleStatus(car)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
-                          {car.status === "rented" ? "Return car" : "Mark rented"}
-                        </button>
+                        {car.status === "rented" ? (
+                          <button onClick={() => handleToggleStatus(car)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
+                            Return car
+                          </button>
+                        ) : (
+                          <button onClick={() => handleOpenRentModal(car)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
+                            Mark rented
+                          </button>
+                        )}
                         <button onClick={() => handleDeleteCar(car.id)} className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-400">
                           Delete
                         </button>
@@ -646,6 +679,64 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* ── Rent modal ── */}
+      {rentModalCar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0b1a2f] p-8 shadow-2xl shadow-black/40">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/70">New rental</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">
+              {rentModalCar.brand} {rentModalCar.model}
+            </h2>
+            <div className="mt-6 flex flex-col gap-5">
+              <label>
+                <span className={labelStyle}>Customer Name</span>
+                <input
+                  className={inputStyle}
+                  placeholder="Customer name"
+                  value={modalCustomerName}
+                  onChange={(e) => setModalCustomerName(e.target.value)}
+                  autoFocus
+                />
+              </label>
+              <label>
+                <span className={labelStyle}>Rented From</span>
+                <input
+                  className={inputStyle}
+                  type="date"
+                  value={modalRentedFrom}
+                  onChange={(e) => setModalRentedFrom(e.target.value)}
+                />
+              </label>
+              <label>
+                <span className={labelStyle}>Rental Days</span>
+                <input
+                  className={inputStyle}
+                  placeholder="Number of days"
+                  type="number"
+                  min="1"
+                  value={modalRentalDays}
+                  onChange={(e) => setModalRentalDays(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="mt-7 flex gap-3">
+              <button
+                onClick={handleConfirmRent}
+                className="h-12 flex-1 rounded-2xl bg-blue-500 font-medium text-white transition hover:bg-blue-400"
+              >
+                Confirm rental
+              </button>
+              <button
+                onClick={() => setRentModalCar(null)}
+                className="h-12 rounded-2xl border border-white/10 bg-white/5 px-5 font-medium text-white transition hover:bg-white/10"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
