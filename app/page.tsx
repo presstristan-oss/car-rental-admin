@@ -85,6 +85,109 @@ function getExpiryStatus(dateString: string | null) {
   return { text: `${days} day${days === 1 ? "" : "s"} left`, className: "text-emerald-300", sortValue: days };
 }
 
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar() {
+  return (
+    <aside className="hidden md:flex flex-col w-56 shrink-0 min-h-screen bg-[#040d18] border-r border-white/8 px-4 py-7 sticky top-0 h-screen overflow-y-auto">
+      {/* Logo */}
+      <div className="mb-8 px-2 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300">
+            <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+            <rect x="9" y="7" width="12" height="10" rx="2" />
+            <circle cx="7" cy="17" r="2" />
+            <circle cx="17" cy="17" r="2" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium text-white/35 uppercase tracking-widest">Admin</p>
+          <p className="text-sm font-semibold text-white leading-tight">RoadQuest</p>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex flex-col gap-1">
+        <NavItem
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          }
+          label="Dashboard"
+          href="/"
+          active
+        />
+        <NavItem
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+              <rect x="9" y="7" width="12" height="10" rx="2" />
+              <circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
+            </svg>
+          }
+          label="Fleet"
+          href="/"
+        />
+        <NavItem
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          }
+          label="History"
+          href="/"
+        />
+        <NavItem
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+            </svg>
+          }
+          label="Settings"
+          href="/"
+        />
+      </nav>
+
+      {/* Bottom label */}
+      <div className="mt-auto px-2 pt-6 border-t border-white/8">
+        <p className="text-xs text-white/25">RoadQuest Cars v1.0</p>
+      </div>
+    </aside>
+  );
+}
+
+function NavItem({
+  icon,
+  label,
+  href,
+  active = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition
+        ${active
+          ? "bg-blue-500/15 text-blue-200"
+          : "text-white/45 hover:bg-white/6 hover:text-white/80"
+        }`}
+    >
+      <span className={active ? "text-blue-300" : "text-white/40"}>{icon}</span>
+      {label}
+    </Link>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const [cars, setCars] = useState<Car[]>([]);
   const [brand, setBrand] = useState("");
@@ -286,6 +389,15 @@ export default function Home() {
     });
   }, [cars, search, filterStatus]);
 
+  // Urgent cars: rego or insurance expiring within 30 days
+  const urgentCars = useMemo(() => {
+    return cars.filter((car) => {
+      const regoDays = getDaysUntil(car.rego_expiry);
+      const insuranceDays = getDaysUntil(car.insurance_expiry);
+      return (regoDays !== null && regoDays <= 30) || (insuranceDays !== null && insuranceDays <= 30);
+    });
+  }, [cars]);
+
   const totalCars = cars.length;
   const availableCars = cars.filter((c) => c.status === "available").length;
   const rentedCars = cars.filter((c) => c.status === "rented").length;
@@ -310,195 +422,271 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#061224] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-8 md:px-8">
+    <div className="flex min-h-screen bg-[#061224] text-white">
+      {/* ── Sidebar ── */}
+      <Sidebar />
 
-        <div className="mb-8 flex flex-col gap-2">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-300/70">Car Rental Admin</p>
-          <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">RoadQuest Cars</h1>
-        </div>
+      {/* ── Main content ── */}
+      <div className="flex-1 min-w-0">
+        <div className="mx-auto max-w-6xl px-6 py-8 md:px-8">
 
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-2xl shadow-black/20 backdrop-blur">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                  {editingId ? "Update existing car" : "Create new entry"}
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold">{editingId ? "Edit car" : "Add new car"}</h2>
-              </div>
-              {editingId && (
-                <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-300">
-                  Editing
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <Field label="Brand"><input className={inputStyle} placeholder="Brand" value={brand} onChange={(e) => setBrand(e.target.value)} /></Field>
-              <Field label="Model"><input className={inputStyle} placeholder="Model" value={model} onChange={(e) => setModel(e.target.value)} /></Field>
-              <Field label="Year"><input className={inputStyle} placeholder="Year" type="number" value={year} onChange={(e) => setYear(e.target.value)} /></Field>
-              <Field label="Weekly Price"><input className={inputStyle} placeholder="Weekly Price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
-              <Field label="Plate Number"><input className={inputStyle} placeholder="Plate Number" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} /></Field>
-              <Field label="Customer Name"><input className={inputStyle} placeholder="Customer Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} /></Field>
-              <Field label="Rented From"><input className={inputStyle} type="date" value={rentStartDate} onChange={(e) => setRentStartDate(e.target.value)} /></Field>
-              <Field label="Rental Days"><input className={inputStyle} placeholder="Rental Days" type="number" value={rentalDays} onChange={(e) => setRentalDays(e.target.value)} /></Field>
-              <Field label="Rego Expiry"><input className={inputStyle} type="date" value={regoExpiry} onChange={(e) => setRegoExpiry(e.target.value)} /></Field>
-              <Field label="Insurance Expiry"><input className={inputStyle} type="date" value={insuranceExpiry} onChange={(e) => setInsuranceExpiry(e.target.value)} /></Field>
-              <Field label="Odometer KM"><input className={inputStyle} placeholder="Odometer KM" type="number" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} /></Field>
-              <Field label="Last Service Date"><input className={inputStyle} type="date" value={lastServiceDate} onChange={(e) => setLastServiceDate(e.target.value)} /></Field>
-              <Field label="Last Service KM"><input className={inputStyle} placeholder="Last Service KM" type="number" value={lastServiceKm} onChange={(e) => setLastServiceKm(e.target.value)} /></Field>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              {editingId ? (
-                <>
-                  <button onClick={handleUpdateCar} className="h-12 rounded-2xl bg-amber-400 px-6 font-medium text-slate-950 transition hover:bg-amber-300">Update car</button>
-                  <button onClick={resetForm} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-6 font-medium text-white transition hover:bg-white/10">Cancel</button>
-                </>
-              ) : (
-                <button onClick={handleAddCar} className="h-12 rounded-2xl bg-blue-500 px-6 font-medium text-white transition hover:bg-blue-400">Add car</button>
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
-            <StatCard label="Total Cars" value={String(totalCars)} helper="All vehicles in your system" />
-            <StatCard label="Available" value={String(availableCars)} helper="Ready for the next booking" valueClassName="text-emerald-400" />
-            <StatCard label="Rented" value={String(rentedCars)} helper="Currently out with customers" valueClassName="text-rose-400" />
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-2xl shadow-black/20 backdrop-blur">
-          <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Search and control</p>
-              <h3 className="mt-2 text-2xl font-semibold">Fleet overview</h3>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
-            <input className={inputStyle} placeholder="Search by brand, model, plate or customer" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <select className={inputStyle} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="all" className="text-black">All</option>
-              <option value="available" className="text-black">Available</option>
-              <option value="rented" className="text-black">Rented</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          {loading ? (
-            <div className="rounded-[28px] border border-white/10 bg-white/6 p-10 text-center text-white/60 backdrop-blur">Loading cars...</div>
-          ) : filteredCars.length === 0 ? (
-            <div className="rounded-[28px] border border-white/10 bg-white/6 p-10 text-center text-white/60 backdrop-blur">No cars found.</div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
-              {filteredCars.map((car) => {
-                const serviceStatus = getServiceStatus(car);
-                const regoStatus = getExpiryStatus(car.rego_expiry);
-                const insuranceStatus = getExpiryStatus(car.insurance_expiry);
-                const isExpanded = expandedId === car.id;
-
-                return (
-                  <div key={car.id} className="rounded-[28px] border border-white/10 bg-[#0b1a2f] p-6 shadow-2xl shadow-black/20 transition hover:-translate-y-0.5 hover:border-white/15">
-
-                    {/* Car name and status badge */}
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                      <div>
-                        <h4 className="text-2xl font-semibold text-white">{car.brand} {car.model}</h4>
-                        <p className="mt-1 text-sm text-white/40">{car.year} · {car.plate_number || "No plate"}</p>
-                      </div>
-                      <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${car.status === "rented" ? "bg-rose-400/12 text-rose-300 ring-1 ring-rose-400/20" : "bg-emerald-400/12 text-emerald-300 ring-1 ring-emerald-400/20"}`}>
-                        {car.status === "rented" ? "Rented" : "Available"}
-                      </span>
-                    </div>
-
-                    {/* Always visible: price and customer */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <InfoBox label="Weekly Price" value={`$${car.weekly_price}`} />
-                      <InfoBox label="Customer" value={car.customer_name || "—"} />
-                    </div>
-
-                    {/* Expiry warning badges - always visible if urgent */}
-                    {(regoStatus.sortValue < 30 || insuranceStatus.sortValue < 30) && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {regoStatus.sortValue < 30 && (
-                          <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${regoStatus.className}`}>
-                            Rego: {regoStatus.text}
-                          </span>
-                        )}
-                        {insuranceStatus.sortValue < 30 && (
-                          <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${insuranceStatus.className}`}>
-                            Insurance: {insuranceStatus.text}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Show/hide details toggle */}
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : car.id)}
-                      className="mt-4 w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white/50 hover:bg-white/8 hover:text-white/80 transition text-left flex items-center justify-between"
-                    >
-                      <span>{isExpanded ? "Hide details" : "Show details"}</span>
-                      <span className="text-white/30">{isExpanded ? "▲" : "▼"}</span>
-                    </button>
-
-                    {/* Expandable details */}
-                    {isExpanded && (
-                      <div className="mt-3 space-y-3">
-                        <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                          <div className="grid gap-2 text-sm">
-                            <DetailRow label="Rented from" value={formatDate(car.rented_from)} />
-                            <DetailRow label="Rental days" value={car.rental_days ? String(car.rental_days) : "-"} />
-                            <DetailRow label="Available again" value={getAvailableAgain(car)} />
-                            <DetailRow label="Odometer" value={car.odometer_km !== null && car.odometer_km !== undefined ? `${car.odometer_km.toLocaleString()} km` : "-"} />
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                          <p className="text-xs uppercase tracking-[0.18em] text-white/35">Rego</p>
-                          <p className="mt-2 text-sm font-medium text-white">{formatDate(car.rego_expiry)}</p>
-                          <p className={`mt-1 text-sm ${regoStatus.className}`}>{regoStatus.text}</p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                          <p className="text-xs uppercase tracking-[0.18em] text-white/35">Insurance</p>
-                          <p className="mt-2 text-sm font-medium text-white">{formatDate(car.insurance_expiry)}</p>
-                          <p className={`mt-1 text-sm ${insuranceStatus.className}`}>{insuranceStatus.text}</p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                          <p className="text-xs uppercase tracking-[0.18em] text-white/35">Service</p>
-                          <p className={`mt-2 text-sm font-medium ${serviceStatus.className}`}>{serviceStatus.text}</p>
-                          <p className="mt-2 text-xs text-white/40">Interval: every 10,000 km</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      <Link href={`/cars/${car.id}`} className="rounded-2xl border border-blue-400/20 bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-200 transition hover:bg-blue-500/20">
-                        View details
-                      </Link>
-                      <button onClick={() => handleStartEdit(car)} className="rounded-2xl bg-amber-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-amber-300">
-                        Edit
-                      </button>
-                      <button onClick={() => handleToggleStatus(car)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
-                        {car.status === "rented" ? "Return car" : "Mark rented"}
-                      </button>
-                      <button onClick={() => handleDeleteCar(car.id)} className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-400">
-                        Delete
-                      </button>
-                    </div>
-
+          {/* ── Alert Banner ── */}
+          {urgentCars.length > 0 && (
+            <div className="mb-6 rounded-[20px] border border-rose-400/25 bg-rose-500/8 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-300 mt-0.5 shrink-0">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-rose-300">
+                    {urgentCars.length} car{urgentCars.length > 1 ? "s" : ""} need{urgentCars.length === 1 ? "s" : ""} attention
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/50">Rego or insurance expiring within 30 days</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {urgentCars.map((car) => {
+                      const regoDays = getDaysUntil(car.rego_expiry);
+                      const insDays = getDaysUntil(car.insurance_expiry);
+                      const isUrgentRego = regoDays !== null && regoDays <= 30;
+                      const isUrgentIns = insDays !== null && insDays <= 30;
+                      return (
+                        <span key={car.id} className="text-xs text-rose-200 bg-rose-500/12 border border-rose-400/20 rounded-full px-3 py-1">
+                          {car.brand} {car.model}
+                          {isUrgentRego && ` · Rego: ${regoDays !== null && regoDays < 0 ? "expired" : `${regoDays}d`}`}
+                          {isUrgentIns && ` · Insurance: ${insDays !== null && insDays < 0 ? "expired" : `${insDays}d`}`}
+                        </span>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
           )}
+
+          {/* ── Page header ── */}
+          <div className="mb-8 flex flex-col gap-2">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-300/70">Car Rental Admin</p>
+            <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">RoadQuest Cars</h1>
+          </div>
+
+          {/* ── Form + Stats ── */}
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+              {/* Form header */}
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                    {editingId ? "Update existing car" : "Create new entry"}
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold">{editingId ? "Edit car" : "Add new car"}</h2>
+                </div>
+                {editingId && (
+                  <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-300">
+                    Editing
+                  </span>
+                )}
+              </div>
+
+              {/* ── Section 1: Vehicle Details ── */}
+              <FormSection title="Vehicle Details">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <Field label="Brand"><input className={inputStyle} placeholder="Brand" value={brand} onChange={(e) => setBrand(e.target.value)} /></Field>
+                  <Field label="Model"><input className={inputStyle} placeholder="Model" value={model} onChange={(e) => setModel(e.target.value)} /></Field>
+                  <Field label="Year"><input className={inputStyle} placeholder="Year" type="number" value={year} onChange={(e) => setYear(e.target.value)} /></Field>
+                  <Field label="Weekly Price"><input className={inputStyle} placeholder="Weekly Price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
+                  <Field label="Plate Number"><input className={inputStyle} placeholder="Plate Number" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} /></Field>
+                </div>
+              </FormSection>
+
+              {/* ── Section 2: Rental Information ── */}
+              <FormSection title="Rental Information">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <Field label="Customer Name"><input className={inputStyle} placeholder="Customer Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} /></Field>
+                  <Field label="Rented From"><input className={inputStyle} type="date" value={rentStartDate} onChange={(e) => setRentStartDate(e.target.value)} /></Field>
+                  <Field label="Rental Days"><input className={inputStyle} placeholder="Rental Days" type="number" value={rentalDays} onChange={(e) => setRentalDays(e.target.value)} /></Field>
+                </div>
+              </FormSection>
+
+              {/* ── Section 3: Maintenance & Compliance ── */}
+              <FormSection title="Maintenance & Compliance">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <Field label="Rego Expiry"><input className={inputStyle} type="date" value={regoExpiry} onChange={(e) => setRegoExpiry(e.target.value)} /></Field>
+                  <Field label="Insurance Expiry"><input className={inputStyle} type="date" value={insuranceExpiry} onChange={(e) => setInsuranceExpiry(e.target.value)} /></Field>
+                  <Field label="Odometer KM"><input className={inputStyle} placeholder="Odometer KM" type="number" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} /></Field>
+                  <Field label="Last Service Date"><input className={inputStyle} type="date" value={lastServiceDate} onChange={(e) => setLastServiceDate(e.target.value)} /></Field>
+                  <Field label="Last Service KM"><input className={inputStyle} placeholder="Last Service KM" type="number" value={lastServiceKm} onChange={(e) => setLastServiceKm(e.target.value)} /></Field>
+                </div>
+              </FormSection>
+
+              {/* Buttons */}
+              <div className="mt-6 flex flex-wrap gap-3">
+                {editingId ? (
+                  <>
+                    <button onClick={handleUpdateCar} className="h-12 rounded-2xl bg-amber-400 px-6 font-medium text-slate-950 transition hover:bg-amber-300">Update car</button>
+                    <button onClick={resetForm} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-6 font-medium text-white transition hover:bg-white/10">Cancel</button>
+                  </>
+                ) : (
+                  <button onClick={handleAddCar} className="h-12 rounded-2xl bg-blue-500 px-6 font-medium text-white transition hover:bg-blue-400">Add car</button>
+                )}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+              <StatCard label="Total Cars" value={String(totalCars)} helper="All vehicles in your system" />
+              <StatCard label="Available" value={String(availableCars)} helper="Ready for the next booking" valueClassName="text-emerald-400" />
+              <StatCard label="Rented" value={String(rentedCars)} helper="Currently out with customers" valueClassName="text-rose-400" />
+            </div>
+          </div>
+
+          {/* ── Fleet overview + Search/Filter ── */}
+          <div className="mt-6 rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+            <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Search and control</p>
+                <h3 className="mt-2 text-2xl font-semibold">Fleet overview</h3>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
+              <input className={inputStyle} placeholder="Search by brand, model, plate or customer" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <select className={inputStyle} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="all" className="text-black">All</option>
+                <option value="available" className="text-black">Available</option>
+                <option value="rented" className="text-black">Rented</option>
+              </select>
+            </div>
+          </div>
+
+          {/* ── Car cards ── */}
+          <div className="mt-6">
+            {loading ? (
+              <div className="rounded-[28px] border border-white/10 bg-white/6 p-10 text-center text-white/60 backdrop-blur">Loading cars...</div>
+            ) : filteredCars.length === 0 ? (
+              <div className="rounded-[28px] border border-white/10 bg-white/6 p-10 text-center text-white/60 backdrop-blur">No cars found.</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                {filteredCars.map((car) => {
+                  const serviceStatus = getServiceStatus(car);
+                  const regoStatus = getExpiryStatus(car.rego_expiry);
+                  const insuranceStatus = getExpiryStatus(car.insurance_expiry);
+                  const isExpanded = expandedId === car.id;
+
+                  return (
+                    <div key={car.id} className="rounded-[28px] border border-white/10 bg-[#0b1a2f] p-6 shadow-2xl shadow-black/20 transition hover:-translate-y-0.5 hover:border-white/15">
+
+                      {/* Car name and status badge */}
+                      <div className="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h4 className="text-2xl font-semibold text-white">{car.brand} {car.model}</h4>
+                          <p className="mt-1 text-sm text-white/40">{car.year} · {car.plate_number || "No plate"}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${car.status === "rented" ? "bg-rose-400/12 text-rose-300 ring-1 ring-rose-400/20" : "bg-emerald-400/12 text-emerald-300 ring-1 ring-emerald-400/20"}`}>
+                          {car.status === "rented" ? "Rented" : "Available"}
+                        </span>
+                      </div>
+
+                      {/* Always visible: price and customer */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <InfoBox label="Weekly Price" value={`$${car.weekly_price}`} />
+                        <InfoBox label="Customer" value={car.customer_name || "—"} />
+                      </div>
+
+                      {/* Expiry warning badges */}
+                      {(regoStatus.sortValue < 30 || insuranceStatus.sortValue < 30) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {regoStatus.sortValue < 30 && (
+                            <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${regoStatus.className}`}>
+                              Rego: {regoStatus.text}
+                            </span>
+                          )}
+                          {insuranceStatus.sortValue < 30 && (
+                            <span className={`rounded-full border border-white/10 px-3 py-1 text-xs ${insuranceStatus.className}`}>
+                              Insurance: {insuranceStatus.text}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Show/hide details toggle */}
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : car.id)}
+                        className="mt-4 w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white/50 hover:bg-white/8 hover:text-white/80 transition text-left flex items-center justify-between"
+                      >
+                        <span>{isExpanded ? "Hide details" : "Show details"}</span>
+                        <span className="text-white/30">{isExpanded ? "▲" : "▼"}</span>
+                      </button>
+
+                      {/* Expandable details */}
+                      {isExpanded && (
+                        <div className="mt-3 space-y-3">
+                          <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                            <div className="grid gap-2 text-sm">
+                              <DetailRow label="Rented from" value={formatDate(car.rented_from)} />
+                              <DetailRow label="Rental days" value={car.rental_days ? String(car.rental_days) : "-"} />
+                              <DetailRow label="Available again" value={getAvailableAgain(car)} />
+                              <DetailRow label="Odometer" value={car.odometer_km !== null && car.odometer_km !== undefined ? `${car.odometer_km.toLocaleString()} km` : "-"} />
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                            <p className="text-xs uppercase tracking-[0.18em] text-white/35">Rego</p>
+                            <p className="mt-2 text-sm font-medium text-white">{formatDate(car.rego_expiry)}</p>
+                            <p className={`mt-1 text-sm ${regoStatus.className}`}>{regoStatus.text}</p>
+                          </div>
+
+                          <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                            <p className="text-xs uppercase tracking-[0.18em] text-white/35">Insurance</p>
+                            <p className="mt-2 text-sm font-medium text-white">{formatDate(car.insurance_expiry)}</p>
+                            <p className={`mt-1 text-sm ${insuranceStatus.className}`}>{insuranceStatus.text}</p>
+                          </div>
+
+                          <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                            <p className="text-xs uppercase tracking-[0.18em] text-white/35">Service</p>
+                            <p className={`mt-2 text-sm font-medium ${serviceStatus.className}`}>{serviceStatus.text}</p>
+                            <p className="mt-2 text-xs text-white/40">Interval: every 10,000 km</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action buttons */}
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <Link href={`/cars/${car.id}`} className="rounded-2xl border border-blue-400/20 bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-200 transition hover:bg-blue-500/20">
+                          View details
+                        </Link>
+                        <button onClick={() => handleStartEdit(car)} className="rounded-2xl bg-amber-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-amber-300">
+                          Edit
+                        </button>
+                        <button onClick={() => handleToggleStatus(car)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
+                          {car.status === "rented" ? "Return car" : "Mark rented"}
+                        </button>
+                        <button onClick={() => handleDeleteCar(car.id)} className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-400">
+                          Delete
+                        </button>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Helper components ─────────────────────────────────────────────────────────
+
+function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      <div className="mb-4 flex items-center gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/70">{title}</p>
+        <div className="flex-1 border-t border-white/8" />
+      </div>
+      {children}
     </div>
   );
 }
