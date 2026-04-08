@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 function DashboardIcon() {
   return (
@@ -52,6 +53,12 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -98,8 +105,19 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="mt-auto px-2 pt-6 border-t border-white/8">
-        <p className="text-xs text-white/25">RoadQuest Cars v1.0</p>
+      <div className="mt-auto pt-6 border-t border-white/8">
+        <button
+          onClick={handleSignOut}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/40 transition hover:bg-white/6 hover:text-rose-300"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Sign out
+        </button>
+        <p className="mt-3 px-2 text-xs text-white/20">RoadQuest Cars v1.0</p>
       </div>
     </aside>
   );
