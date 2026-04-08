@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthGuard } from "@/app/components/AuthGuard";
+import { MobileNav } from "@/app/components/MobileNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthGuard>{children}</AuthGuard>
+        <AuthGuard>
+          <MobileNav />
+          <div className="pt-[53px] md:pt-0">
+            {children}
+          </div>
+        </AuthGuard>
       </body>
     </html>
   );
